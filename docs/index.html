@@ -1,0 +1,586 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Esther 智能体报销系统</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg: #f6f7f9;
+      --surface: #ffffff;
+      --text: #1a1d23;
+      --text-secondary: #5c6370;
+      --border: #e2e4e8;
+      --accent: #2563eb;
+      --accent-hover: #1d4ed8;
+      --success: #059669;
+      --danger: #dc2626;
+      --warning: #d97706;
+      --agent: #7c3aed;
+      --shadow: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
+      --shadow-lg: 0 10px 25px rgba(0,0,0,0.08), 0 4px 10px rgba(0,0,0,0.04);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+    .container { max-width: 1200px; margin: 0 auto; padding: 24px; }
+    header {
+      display: flex; align-items: center; justify-content: space-between;
+      margin-bottom: 32px; padding-bottom: 16px; border-bottom: 1px solid var(--border);
+    }
+    header h1 { font-size: 22px; font-weight: 700; letter-spacing: -0.3px; }
+    header .badge {
+      background: var(--accent); color: #fff; padding: 4px 12px; border-radius: 20px;
+      font-size: 12px; font-weight: 600;
+    }
+    .tabs {
+      display: flex; gap: 4px; background: #e8eaed; padding: 4px; border-radius: 10px;
+      width: fit-content; margin-bottom: 24px;
+    }
+    .tab {
+      padding: 8px 20px; border-radius: 8px; font-size: 14px; font-weight: 500;
+      cursor: pointer; border: none; background: transparent; color: var(--text-secondary);
+      transition: all 0.15s;
+    }
+    .tab.active { background: var(--surface); color: var(--text); box-shadow: var(--shadow); }
+    .tab:hover:not(.active) { color: var(--text); }
+
+    .panel { display: none; }
+    .panel.active { display: block; }
+
+    .card {
+      background: var(--surface); border-radius: 12px; padding: 24px;
+      box-shadow: var(--shadow); margin-bottom: 20px;
+    }
+    .card h2 { font-size: 16px; font-weight: 600; margin-bottom: 16px; }
+
+    .stats-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 16px;
+    }
+    .stat-item {
+      background: var(--bg); border-radius: 10px; padding: 16px;
+      border: 1px solid var(--border);
+    }
+    .stat-item .label { font-size: 12px; color: var(--text-secondary); margin-bottom: 4px; }
+    .stat-item .value { font-size: 24px; font-weight: 700; }
+    .stat-item .value.pending { color: var(--warning); }
+    .stat-item .value.approved { color: var(--success); }
+    .stat-item .value.rejected { color: var(--danger); }
+    .stat-item .value.agent { color: var(--agent); }
+
+    .form-group { margin-bottom: 16px; }
+    .form-group label {
+      display: block; font-size: 13px; font-weight: 500; margin-bottom: 6px;
+      color: var(--text-secondary);
+    }
+    .form-group input, .form-group select, .form-group textarea {
+      width: 100%; padding: 10px 12px; border: 1px solid var(--border); border-radius: 8px;
+      font-size: 14px; font-family: inherit; transition: border 0.15s;
+    }
+    .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+      outline: none; border-color: var(--accent);
+    }
+    .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+    .hint { font-size: 12px; color: var(--text-secondary); margin-top: 4px; }
+
+    .btn {
+      display: inline-flex; align-items: center; gap: 6px; padding: 10px 20px;
+      border-radius: 8px; font-size: 14px; font-weight: 600; border: none;
+      cursor: pointer; transition: all 0.15s;
+    }
+    .btn-primary { background: var(--accent); color: #fff; }
+    .btn-primary:hover { background: var(--accent-hover); }
+    .btn-success { background: var(--success); color: #fff; }
+    .btn-success:hover { background: #047857; }
+    .btn-danger { background: var(--danger); color: #fff; }
+    .btn-danger:hover { background: #b91c1c; }
+    .btn-sm { padding: 6px 14px; font-size: 12px; }
+
+    .reimbursement-list { display: flex; flex-direction: column; gap: 12px; }
+    .reimbursement-item {
+      display: flex; align-items: center; justify-content: space-between;
+      background: var(--bg); border-radius: 10px; padding: 16px;
+      border: 1px solid var(--border); transition: box-shadow 0.15s;
+    }
+    .reimbursement-item:hover { box-shadow: var(--shadow); }
+    .reimbursement-item .info { flex: 1; }
+    .reimbursement-item .info .top {
+      display: flex; align-items: center; gap: 8px; margin-bottom: 6px;
+    }
+    .reimbursement-item .info .top .name { font-weight: 600; font-size: 14px; }
+    .reimbursement-item .info .top .tag {
+      font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 12px;
+      text-transform: uppercase;
+    }
+    .tag-human { background: #dbeafe; color: #1e40af; }
+    .tag-agent { background: #ede9fe; color: #5b21b6; }
+    .tag-pending { background: #fef3c7; color: #92400e; }
+    .tag-approved { background: #d1fae5; color: #065f46; }
+    .tag-rejected { background: #fee2e2; color: #991b1b; }
+    .tag-high { background: #ede9fe; color: #5b21b6; }
+
+    .reimbursement-item .info .meta {
+      font-size: 12px; color: var(--text-secondary);
+    }
+    .reimbursement-item .amount {
+      font-size: 18px; font-weight: 700; margin-right: 20px;
+    }
+    .reimbursement-item .actions { display: flex; gap: 8px; }
+
+    .filters { display: flex; gap: 12px; margin-bottom: 16px; flex-wrap: wrap; }
+    .filters select, .filters input {
+      padding: 8px 12px; border: 1px solid var(--border); border-radius: 8px;
+      font-size: 13px; min-width: 140px;
+    }
+
+    .empty-state {
+      text-align: center; padding: 48px; color: var(--text-secondary);
+    }
+    .empty-state svg { margin-bottom: 12px; opacity: 0.5; }
+
+    .toast {
+      position: fixed; top: 20px; right: 20px; padding: 14px 20px;
+      border-radius: 10px; color: #fff; font-size: 14px; font-weight: 500;
+      box-shadow: var(--shadow-lg); transform: translateX(120%); transition: transform 0.3s ease;
+      z-index: 1000;
+    }
+    .toast.show { transform: translateX(0); }
+    .toast.success { background: var(--success); }
+    .toast.error { background: var(--danger); }
+
+    .audit-log {
+      font-size: 13px; border-collapse: collapse; width: 100%;
+    }
+    .audit-log th, .audit-log td {
+      text-align: left; padding: 10px 12px; border-bottom: 1px solid var(--border);
+    }
+    .audit-log th { font-weight: 600; color: var(--text-secondary); font-size: 12px; text-transform: uppercase; }
+
+    @media (max-width: 640px) {
+      .form-row { grid-template-columns: 1fr; }
+      .reimbursement-item { flex-direction: column; align-items: flex-start; gap: 12px; }
+      .reimbursement-item .amount { margin-right: 0; }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header>
+      <h1>Esther 报销系统</h1>
+      <div style="display:flex;align-items:center;gap:16px;">
+        <span class="badge">双入口报销</span>
+        <div id="user-bar" style="display:none;align-items:center;gap:10px;font-size:13px;">
+          <img id="user-photo" src="" style="width:28px;height:28px;border-radius:50%;object-fit:cover;">
+          <span id="user-name"></span>
+          <button class="btn btn-sm" onclick="logout()" style="background:#e2e4e8;color:#333;padding:4px 12px;">退出</button>
+        </div>
+        <div id="login-bar" style="display:flex;gap:8px;">
+          <a href="/auth/google" class="btn btn-primary btn-sm" style="text-decoration:none;">使用 Google 登录</a>
+          <button class="btn btn-sm" onclick="mockLogin()" style="background:#e2e4e8;color:#333;padding:6px 14px;">演示登录</button>
+        </div>
+      </div>
+    </header>
+
+    <nav class="tabs">
+      <button class="tab active" onclick="switchTab('dashboard')">仪表盘</button>
+      <button class="tab" onclick="switchTab('submit')">提交报销</button>
+      <button class="tab" onclick="switchTab('pending')">待审批</button>
+      <button class="tab" onclick="switchTab('history')">历史记录</button>
+      <button class="tab" onclick="switchTab('audit')">审计日志</button>
+    </nav>
+
+    <!-- 仪表盘 -->
+    <div class="panel active" id="panel-dashboard">
+      <div class="card">
+        <h2>系统概览</h2>
+        <div class="stats-grid" id="stats-grid"></div>
+      </div>
+      <div class="card">
+        <h2>最近提交</h2>
+        <div id="recent-list" class="reimbursement-list"></div>
+      </div>
+    </div>
+
+    <!-- 提交报销 -->
+    <div class="panel" id="panel-submit">
+      <div class="card">
+        <h2>人工提交报销</h2>
+        <form id="submit-form" onsubmit="handleSubmit(event)" enctype="multipart/form-data">
+          <div class="form-row">
+            <div class="form-group">
+              <label>提交者姓名</label>
+              <input type="text" id="submitterName" placeholder="请输入姓名" required>
+            </div>
+            <div class="form-group">
+              <label>提交者ID</label>
+              <input type="email" id="submitterId" placeholder="请输入邮箱" required>
+            </div>
+          </div>
+          <div class="form-row">
+            <div class="form-group">
+              <label>金额（人民币）</label>
+              <input type="number" id="amount" step="0.01" max="150" placeholder="最高150元" required>
+              <div class="hint">单次上限 150 CNY，单月最多 3 张凭证</div>
+            </div>
+            <div class="form-group">
+              <label>类别</label>
+              <select id="category">
+                <option value="general">一般费用</option>
+                <option value="transport">交通</option>
+                <option value="meal">餐饮</option>
+                <option value="office">办公用品</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label>事由描述</label>
+            <textarea id="description" rows="3" placeholder="请详细描述报销事由..." required></textarea>
+          <div class="form-group">
+            <label>PDF 发票（必填）</label>
+            <input type="file" id="invoices" name="invoices" accept=".pdf,application/pdf" multiple required>
+            <div class="hint">请上传 PDF 格式发票，最多 5 张，单张不超过 10MB</div>
+          </div>
+          </div>
+          <button type="submit" class="btn btn-primary">提交报销单</button>
+        </form>
+      </div>
+
+      <div class="card" style="border-left: 4px solid var(--agent);">
+        <h2>Hermes 智能体提交</h2>
+        <p style="font-size: 14px; color: var(--text-secondary); margin-bottom: 16px;">
+          Hermes 语音助手通过 MCP 协议自动提交报销。智能体提交的报销单可通过 MCP 协议自动提交，与人工提交享有同等待遇。
+        </p>
+        <div style="background: #f3f4f6; border-radius: 8px; padding: 16px; font-family: monospace; font-size: 13px;">
+          <div style="color: var(--text-secondary); margin-bottom: 8px;">MCP Endpoint:</div>
+          <div>POST http://localhost:3000/mcp</div>
+          <div style="margin-top: 12px; color: var(--text-secondary);">示例工具调用:</div>
+          <pre style="margin-top: 6px; white-space: pre-wrap; word-break: break-all;">{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "method": "tools/call",
+  "params": {
+    "name": "submit_reimbursement",
+    "arguments": {
+      "submitterId": "zhangsan@company.com",
+      "submitterName": "张三",
+      "amount": 120,
+      "description": "打车去客户现场"
+    }
+  }
+}</pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- 待审批 -->
+    <div class="panel" id="panel-pending">
+      <div class="card">
+        <h2>待审批报销单</h2>
+        <div class="filters">
+          <select id="pending-filter-type" onchange="loadPending()">
+            <option value="">全部类型</option>
+            <option value="agent">智能体提交</option>
+            <option value="human">人工提交</option>
+          </select>
+        </div>
+        <div id="pending-list" class="reimbursement-list"></div>
+      </div>
+    </div>
+
+    <!-- 历史记录 -->
+    <div class="panel" id="panel-history">
+      <div class="card">
+        <h2>历史记录</h2>
+        <div class="filters">
+          <select id="history-filter-status" onchange="loadHistory()">
+            <option value="">全部状态</option>
+            <option value="approved">已通过</option>
+            <option value="rejected">已拒绝</option>
+            <option value="pending">待审批</option>
+          </select>
+          <select id="history-filter-type" onchange="loadHistory()">
+            <option value="">全部类型</option>
+            <option value="agent">智能体提交</option>
+            <option value="human">人工提交</option>
+          </select>
+        </div>
+        <div id="history-list" class="reimbursement-list"></div>
+      </div>
+    </div>
+
+    <!-- 审计日志 -->
+    <div class="panel" id="panel-audit">
+      <div class="card">
+        <h2>审计日志</h2>
+        <table class="audit-log">
+          <thead>
+            <tr><th>时间</th><th>操作</th><th>目标</th><th>操作人</th><th>详情</th></tr>
+          </thead>
+          <tbody id="audit-body"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+  <script>
+    const API = '/api';
+
+    function showToast(message, type = 'success') {
+      const toast = document.getElementById('toast');
+      toast.textContent = message;
+      toast.className = `toast ${type} show`;
+      setTimeout(() => toast.classList.remove('show'), 3000);
+    }
+
+    function switchTab(name) {
+      document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+      document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+      event.target.classList.add('active');
+      document.getElementById(`panel-${name}`).classList.add('active');
+      if (name === 'dashboard') loadDashboard();
+      if (name === 'pending') loadPending();
+      if (name === 'history') loadHistory();
+      if (name === 'audit') loadAudit();
+    }
+
+    function formatDate(iso) {
+      const d = new Date(iso);
+      return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')} ${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+    }
+
+    function formatAmount(n) {
+      return '¥' + n.toFixed(2);
+    }
+
+    function renderItem(r, showActions = false) {
+      const typeTag = r.submitterType === 'agent'
+        ? `<span class="tag tag-agent">智能体</span>`
+        : `<span class="tag tag-human">人工</span>`;
+      const statusTag = r.status === 'pending'
+        ? `<span class="tag tag-pending">待审批</span>`
+        : r.status === 'approved'
+        ? `<span class="tag tag-approved">已通过</span>`
+        : `<span class="tag tag-rejected">已拒绝</span>`;
+      const actions = showActions ? `
+        <div class="actions">
+          <button class="btn btn-success btn-sm" onclick="approve('${r.id}')">通过</button>
+          <button class="btn btn-danger btn-sm" onclick="reject('${r.id}')">拒绝</button>
+        </div>` : '';
+      return `
+        <div class="reimbursement-item" data-id="${r.id}">
+          <div class="info">
+            <div class="top">
+              <span class="name">${r.submitterName}</span>
+              ${typeTag}
+              ${statusTag}
+            </div>
+            <div class="meta">${r.description} · ${r.category} · ${formatDate(r.createdAt)}</div>
+            ${r.attachments && r.attachments.length > 0 ? `<div class="meta" style="margin-top:4px;">📎 发票: ${r.attachments.map(a => `<a href="${a.path}" target="_blank" style="color:var(--accent);text-decoration:none;">${a.originalName}</a>`).join(', ')}</div>` : ''}
+          </div>
+          <div class="amount">${formatAmount(r.amount)}</div>
+          ${actions}
+        </div>`;
+    }
+
+    async function loadDashboard() {
+      try {
+        const res = await fetch(`${API}/dashboard`);
+        const json = await res.json();
+        const s = json.data;
+        document.getElementById('stats-grid').innerHTML = `
+          <div class="stat-item"><div class="label">待审批</div><div class="value pending">${s.pending}</div></div>
+          <div class="stat-item"><div class="label">已通过</div><div class="value approved">${s.approved}</div></div>
+          <div class="stat-item"><div class="label">已拒绝</div><div class="value rejected">${s.rejected}</div></div>
+          <div class="stat-item"><div class="label">智能体待审</div><div class="value agent">${s.pendingAgent}</div></div>
+          <div class="stat-item"><div class="label">人工待审</div><div class="value">${s.pendingHuman}</div></div>
+          <div class="stat-item"><div class="label">已批总额</div><div class="value approved">${formatAmount(s.totalAmountApproved)}</div></div>
+        `;
+      } catch (e) { console.error(e); }
+
+      try {
+        const res = await fetch(`${API}/reimbursements?limit=5`);
+        const json = await res.json();
+        const el = document.getElementById('recent-list');
+        if (!json.data.length) {
+          el.innerHTML = `<div class="empty-state"><div>暂无报销记录</div></div>`;
+        } else {
+          el.innerHTML = json.data.map(r => renderItem(r)).join('');
+        }
+      } catch (e) { console.error(e); }
+    }
+
+    async function loadPending() {
+      const type = document.getElementById('pending-filter-type').value;
+      try {
+        const res = await fetch(`${API}/reimbursements?status=pending&submitterType=${type}&limit=50`);
+        const json = await res.json();
+        const el = document.getElementById('pending-list');
+        if (!json.data.length) {
+          el.innerHTML = `<div class="empty-state"><div>暂无待审批的报销单</div></div>`;
+        } else {
+          el.innerHTML = json.data.map(r => renderItem(r, true)).join('');
+        }
+      } catch (e) { console.error(e); }
+    }
+
+    async function loadHistory() {
+      const status = document.getElementById('history-filter-status').value;
+      const type = document.getElementById('history-filter-type').value;
+      try {
+        const res = await fetch(`${API}/reimbursements?status=${status}&submitterType=${type}&limit=100`);
+        const json = await res.json();
+        const el = document.getElementById('history-list');
+        if (!json.data.length) {
+          el.innerHTML = `<div class="empty-state"><div>暂无历史记录</div></div>`;
+        } else {
+          el.innerHTML = json.data.map(r => renderItem(r)).join('');
+        }
+      } catch (e) { console.error(e); }
+    }
+
+    async function loadAudit() {
+      try {
+        const res = await fetch(`${API}/audit-logs?limit=50`);
+        const json = await res.json();
+        const tbody = document.getElementById('audit-body');
+        tbody.innerHTML = json.data.map(l => `
+          <tr>
+            <td>${formatDate(l.timestamp)}</td>
+            <td>${l.action}</td>
+            <td>${l.targetId || '-'}</td>
+            <td>${l.actorName}</td>
+            <td><pre style="font-size:12px;max-width:300px;overflow:auto;">${JSON.stringify(l.details, null, 2)}</pre></td>
+          </tr>
+        `).join('');
+      } catch (e) { console.error(e); }
+    }
+
+    async function handleSubmit(e) {
+      e.preventDefault();
+      const form = document.getElementById('submit-form');
+      const files = document.getElementById('invoices').files;
+      if (files.length === 0) {
+        showToast('请上传 PDF 发票', 'error');
+        return;
+      }
+      const formData = new FormData(form);
+      try {
+        const res = await fetch(`${API}/reimbursements`, {
+          method: 'POST',
+          body: formData,
+        });
+        const json = await res.json();
+        if (json.success) {
+          showToast('报销单提交成功！');
+          form.reset();
+          loadDashboard();
+        } else {
+          showToast(json.error || '提交失败', 'error');
+        }
+      } catch (err) {
+        showToast('网络错误', 'error');
+      }
+    }
+
+    async function approve(id) {
+      try {
+        const res = await fetch(`${API}/reimbursements/${id}/approve`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ approverId: 'esther', approverName: 'Esther', comment: '审批通过' }),
+        });
+        const json = await res.json();
+        if (json.success) {
+          showToast('已批准');
+          loadPending();
+          loadDashboard();
+        } else {
+          showToast(json.error, 'error');
+        }
+      } catch (e) { showToast('网络错误', 'error'); }
+    }
+
+    async function reject(id) {
+      const reason = prompt('请输入拒绝原因：') || '未说明原因';
+      try {
+        const res = await fetch(`${API}/reimbursements/${id}/reject`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ approverId: 'esther', approverName: 'Esther', reason }),
+        });
+        const json = await res.json();
+        if (json.success) {
+          showToast('已拒绝');
+          loadPending();
+          loadDashboard();
+        } else {
+          showToast(json.error, 'error');
+        }
+      } catch (e) { showToast('网络错误', 'error'); }
+    }
+
+    // 登录状态管理
+    let currentUser = null;
+
+    async function checkAuth() {
+      try {
+        const res = await fetch('/auth/me');
+        const json = await res.json();
+        if (json.success && json.data) {
+          currentUser = json.data;
+          document.getElementById('login-bar').style.display = 'none';
+          document.getElementById('user-bar').style.display = 'flex';
+          document.getElementById('user-name').textContent = currentUser.name;
+          if (currentUser.photo) {
+            document.getElementById('user-photo').src = currentUser.photo;
+            document.getElementById('user-photo').style.display = 'block';
+          } else {
+            document.getElementById('user-photo').style.display = 'none';
+          }
+          // 自动填充提交表单
+          const submitterId = document.getElementById('submitterId');
+          const submitterName = document.getElementById('submitterName');
+          if (submitterId && currentUser.email) submitterId.value = currentUser.email;
+          if (submitterName && currentUser.name) submitterName.value = currentUser.name;
+        } else {
+          document.getElementById('login-bar').style.display = 'flex';
+          document.getElementById('user-bar').style.display = 'none';
+        }
+      } catch (e) { console.error(e); }
+    }
+
+    async function logout() {
+      window.location.href = '/auth/logout';
+    }
+
+    async function mockLogin() {
+      try {
+        const res = await fetch('/auth/mock-login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: 'demo@company.com', name: '演示用户' }),
+        });
+        const json = await res.json();
+        if (json.success) {
+          currentUser = json.data;
+          checkAuth();
+          showToast('演示登录成功');
+        }
+      } catch (e) { showToast('登录失败', 'error'); }
+    }
+
+    // 初始加载
+    checkAuth();
+    loadDashboard();
+  </script>
+</body>
+</html>
